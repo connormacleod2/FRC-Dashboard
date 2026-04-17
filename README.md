@@ -8,7 +8,11 @@
  DEFAULT_YEAR=2026
  BASE_URL=https://www.thebluealliance.com/api/v3
  API_KEY=YOUR_TBA_KEY
+ AUTH_USER=admin
+ AUTH_PASS=yourpassword
  ```
+
+ > **Note:** `AUTH_USER` and `AUTH_PASS` are optional. Defaults: `admin` / `frc2026`
  
  2. Run:
   ```bash
@@ -26,16 +30,30 @@
  
  The scripts will install dependencies, launch the app, and open `http://127.0.0.1:5000/`.
 
- ## Docker (Linux container; optional Raspberry Pi/ARM emulation)
+ ## Docker (Linux container)
  1. Create a `.env` file in the project root with the same variables as above.
 
  2. Run with Docker Compose:
  ```bash
- docker compose up --build
+ docker compose up --build -d
  ```
 
- 3. Open:
- `http://127.0.0.1:5000/`
+ 3. Open: `http://127.0.0.1:5000/`
+
+ ## Public Access (Cloudflare Tunnel)
+ The Docker setup includes a Cloudflare tunnel for public access without port forwarding.
+
+ 1. Start the containers:
+ ```bash
+ docker compose up --build -d
+ ```
+
+ 2. Get the public URL:
+ ```bash
+ docker compose logs cloudflared | grep trycloudflare.com
+ ```
+
+ Share the `*.trycloudflare.com` URL. Note: URL changes on each restart.
 
  ### Raspberry Pi emulation notes
  To emulate a Raspberry Pi userspace on a non-ARM machine, build/run the image as `linux/arm64` (or `linux/arm/v7` for 32-bit) using Docker Buildx.

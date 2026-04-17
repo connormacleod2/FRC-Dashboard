@@ -1,6 +1,8 @@
 import os
 
 from flask import Flask, render_template, request, jsonify
+from flask_httpauth import HTTPBasicAuth
+from werkzeug.security import check_password_hash, generate_password_hash
 import requests
 from dotenv import load_dotenv
 import time
@@ -13,6 +15,8 @@ team_number = os.getenv("TEAM_NUMBER")
 default_year = os.getenv("DEFAULT_YEAR")
 base_url = os.getenv("BASE_URL")
 api_key = os.getenv("API_KEY")
+auth_user = os.getenv("AUTH_USER", "admin")
+auth_pass = os.getenv("AUTH_PASS", "frc2026")
 
 #check if all .env variables are set
 if not team_number or not default_year or not base_url or not api_key:
@@ -23,6 +27,13 @@ headers = {
 }
 
 app = Flask(__name__)
+auth = HTTPBasicAuth()
+
+@auth.verify_password
+def verify_password(username, password):
+    if username == auth_user and password == auth_pass:
+        return username
+    return None
 
 # Very small in-memory TTL cache to avoid re-hitting TBA too frequently (e.g. 7-min refresh)
 
@@ -66,6 +77,7 @@ def tba_get_json(url: str, ttl_seconds: int = 420):
     return data
 
 @app.route('/')
+@auth.login_required
 def index():
     # print('Just before API request')
     response = get_team_events()

@@ -6,3 +6,9 @@ services:
       - "5000:5000"
     env_file:
       - .env
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate --url http://frc-dashboard:5000
+    depends_on:
+      - frc-dashboard
