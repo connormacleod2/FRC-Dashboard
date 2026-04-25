@@ -315,6 +315,17 @@ def event_data():
         if gaps:
             avg_match_gap_seconds = sum(gaps) / len(gaps)
 
+    # Average time between any completed qualifier matches at the event
+    all_completed_times = sorted(
+        int(m['actual_time']) for m in matches
+        if m.get('comp_level') == 'qm' and m.get('actual_time')
+    )
+    avg_match_gap_all_seconds = None
+    if len(all_completed_times) >= 2:
+        all_gaps = [b - a for a, b in zip(all_completed_times, all_completed_times[1:]) if b > a]
+        if all_gaps:
+            avg_match_gap_all_seconds = sum(all_gaps) / len(all_gaps)
+
     # -----------------
     # Per-team scoring summary (qual matches only; completed only)
     # -----------------
@@ -394,6 +405,7 @@ def event_data():
             'rp': current_rp,
             'record': record,
             'avg_match_gap_seconds': avg_match_gap_seconds,
+            'avg_match_gap_all_seconds': avg_match_gap_all_seconds,
             'next_match': next_match,
         },
         'scoring_table': table,
