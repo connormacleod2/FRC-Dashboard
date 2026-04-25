@@ -1,9 +1,28 @@
-const teamNum = "{{ team_number }}";
+const teamNum = window.TEAM_NUMBER;
 const refreshMs = 7 * 60 * 1000;
 let selectedEventKey = null;
 let refreshTimer = null;
 let scoringDt = null;
 let scrollAnimationId = null;
+let speed = 40;
+let pause = 3;
+const scoreSpeedSliderObject = document.getElementById('scoringTableScrollSpeed');
+const scorePauseSliderObject = document.getElementById('scoringTableScrollPause');
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (scoreSpeedSliderObject) {
+        speed = scoreSpeedSliderObject.valueAsNumber;
+        scoreSpeedSliderObject.addEventListener('input', () => {
+            speed = scoreSpeedSliderObject.valueAsNumber;
+        });
+    }
+    if (scorePauseSliderObject) {
+        pause = scorePauseSliderObject.valueAsNumber * 1000;
+        scorePauseSliderObject.addEventListener('input', () => {
+            pause = scorePauseSliderObject.valueAsNumber * 1000;
+        });
+    }
+});
 
 function getScoringTableScrollY() {
     const card = $("#scoringTable").closest(".card");
@@ -101,7 +120,11 @@ function renderTeamStats(payload) {
     }
 
     document.getElementById('nextMatchNum').textContent = nm ? (nm.match_number ?? '-') : '-';
-    document.getElementById('bumperColor').textContent = nm ? (nm.bumper_color ?? '-') : '-';
+    const bumperColor = nm ? (nm.bumper_color ?? null) : null;
+    document.getElementById('bumperColor').textContent = bumperColor ?? '-';
+    document.querySelectorAll('.bumper-text').forEach(el => {
+        el.style.color = bumperColor;
+    });
     document.getElementById('teammates').textContent = nm ? ((nm.teammates || []).join(', ') || '-') : '-';
     document.getElementById('opponents').textContent = nm ? ((nm.opponents || []).join(', ') || '-') : '-';
 }
@@ -146,17 +169,25 @@ function startAutoScroll() {
         }
 
         console.log('Scroll setup:', scrollBody.scrollHeight, scrollBody.clientHeight, 'canScroll:', scrollBody.scrollHeight > scrollBody.clientHeight);
+        speed = scoreSpeedSliderObject.valueAsNumber;
+        pause = scorePauseSliderObject.valueAsNumber * 1000;
 
-        const speed = .5; // pixels per frame
+        let pos = scrollBody.scrollTop;
+        let lastTime = null;
 
-        function animate() {
-            scrollBody.scrollTop += speed;
+        function animate(now) {
+            if (lastTime != null) {
+                pos += speed * (now - lastTime) / 1000;
+                scrollBody.scrollTop = pos;
+            }
+            lastTime = now;
 
-            // Reset to top when reached bottom
             if (Math.round(scrollBody.scrollTop) + Math.round(scrollBody.clientHeight) >= scrollBody.scrollHeight) {
                 setTimeout(() => {
+                    pos = 0;
                     scrollBody.scrollTop = 0;
-                }, 1000)
+                    lastTime = null;
+                }, pause);
             }
             scrollAnimationId = requestAnimationFrame(animate);
         }
