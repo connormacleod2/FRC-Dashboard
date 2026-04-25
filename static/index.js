@@ -24,27 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-function getScoringTableScrollY() {
-    const card = $("#scoringTable").closest(".card");
-    if (!card.length) return '300px';
-
-    const cardInner = card.innerHeight() || 0;
-    const headerH = (card.find('h3').first().outerHeight(true) || 0);
-    const dtHeadH = ($('#scoringTable thead').outerHeight(true) || 0);
-
-    let available = cardInner - headerH - dtHeadH - 40;
-    if (!Number.isFinite(available) || available < 180) {
-        available = 180;
-    }
-    return `${Math.floor(available)}px`;
-}
-
-function refreshScoringTableScroll() {
-    if (!scoringDt) return;
-    scoringDt.settings()[0].oScroll.sY = getScoringTableScrollY();
-    scoringDt.draw(false);
-}
-
 function analyzeEvent() {
     const eventKey = $("#eventList").val();
     const eventLabel = $("#eventList option:selected").text();
@@ -117,6 +96,14 @@ function renderTeamStats(payload) {
         document.getElementById('avgMatchGap').textContent = `${mins} min`;
     } else {
         document.getElementById('avgMatchGap').textContent = '-';
+    }
+
+    if (stats.avg_match_gap_all_seconds) {
+        const allMins = Math.round(stats.avg_match_gap_all_seconds / 60);
+        const allSecs = Math.round(stats.avg_match_gap_all_seconds % 60);
+        document.getElementById('avgMatchGapAll').textContent = `${allMins} min ${allSecs} sec`;
+    } else {
+        document.getElementById('avgMatchGapAll').textContent = '-';
     }
 
     document.getElementById('nextMatchNum').textContent = nm ? (nm.match_number ?? '-') : '-';
@@ -195,10 +182,6 @@ function startAutoScroll() {
         scrollAnimationId = requestAnimationFrame(animate);
     }, 100);
 }
-
-window.addEventListener('resize', () => {
-    refreshScoringTableScroll();
-});
 
 function showError(message) {
     document.getElementById('errorMessage').textContent = message;
