@@ -1,3 +1,4 @@
+/* global $, jQuery */
 const teamNum = window.TEAM_NUMBER;
 const refreshMs = 7 * 60 * 1000;
 let selectedEventKey = null;
@@ -6,8 +7,8 @@ let scoringDt = null;
 let scrollAnimationId = null;
 let speed = 40;
 let pause = 3;
-const scoreSpeedSliderObject = document.getElementById('scoringTableScrollSpeed');
-const scorePauseSliderObject = document.getElementById('scoringTableScrollPause');
+const scoreSpeedSliderObject = /** @type {HTMLInputElement|null} */ (document.getElementById('scoringTableScrollSpeed'));
+const scorePauseSliderObject = /** @type {HTMLInputElement|null} */ (document.getElementById('scoringTableScrollPause'));
 
 document.addEventListener('DOMContentLoaded', () => {
     if (scoreSpeedSliderObject) {
@@ -35,8 +36,10 @@ function analyzeEvent() {
     selectedEventKey = eventKey;
     fetchAndRenderEventData();
     startAutoRefresh();
-    document.getElementById('initialContainer').style.display = 'none';
-    document.getElementById('mainContainer').style.display = 'flex';
+    const initialContainer = /** @type {HTMLElement|null} */ (document.getElementById('initialContainer'));
+    const mainContainer = /** @type {HTMLElement|null} */ (document.getElementById('mainContainer'));
+    if (initialContainer) initialContainer.style.display = 'none';
+    if (mainContainer) mainContainer.style.display = 'flex';
     $("#eventPlaceholder").text(eventLabel);
 }
 
@@ -60,6 +63,15 @@ function fetchAndRenderEventData(isRefresh = false) {
         data: {
             event_key: selectedEventKey,
         },
+        /**
+         * @param {{
+         *   success: boolean,
+         *   error?: string,
+         *   last_updated?: string,
+         *   team_stats?: Object,
+         *   scoring_table?: Array
+         * }} response
+         */
         success: function (response) {
             if (!response || !response.success) {
                 showError(response && response.error ? response.error : 'Error loading event data.');
@@ -77,6 +89,34 @@ function fetchAndRenderEventData(isRefresh = false) {
     });
 }
 
+/**
+ * @typedef {Object} Record
+ * @property {number} wins
+ * @property {number} losses
+ * @property {number} ties
+ */
+
+/**
+ * @typedef {Object} NextMatch
+ * @property {number|string|null} [match_number]
+ * @property {('red'|'blue'|null)} [bumper_color]
+ * @property {Array<number|string>} [teammates]
+ * @property {Array<number|string>} [opponents]
+ */
+
+/**
+ * @typedef {Object} TeamStats
+ * @property {number|null} avg_match_gap_all_seconds
+ * @property {number|null} avg_match_gap_seconds
+ * @property {NextMatch|null} next_match
+ * @property {number|null} rank
+ * @property {number|null} rp
+ * @property {Record|null} record
+ */
+
+/**
+ * @param {{ team_stats?: TeamStats, last_updated?: string }} payload
+ */
 function renderTeamStats(payload) {
     const stats = payload.team_stats || {};
     const nm = stats.next_match || null;
@@ -116,6 +156,19 @@ function renderTeamStats(payload) {
     document.getElementById('opponents').textContent = nm ? ((nm.opponents || []).join(', ') || '-') : '-';
 }
 
+/**
+ * @typedef {Object} ScoringRow
+ * @property {number} rank
+ * @property {number|string} team
+ * @property {number} matches
+ * @property {number} avg_alliance_score
+ * @property {number} avg_opponent_score
+ * @property {number} avg_margin
+ */
+
+/**
+ * @param {Array<ScoringRow>} rows
+ */
 function renderScoringTable(rows) {
     const tbody = $("#scoringTable tbody");
     tbody.empty();

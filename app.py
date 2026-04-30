@@ -2,7 +2,6 @@ import os
 
 from flask import Flask, render_template, request, jsonify
 from flask_httpauth import HTTPBasicAuth
-from werkzeug.security import check_password_hash, generate_password_hash
 import requests
 from dotenv import load_dotenv
 import time
@@ -18,22 +17,24 @@ api_key = os.getenv("API_KEY")
 auth_user = os.getenv("AUTH_USER", "admin")
 auth_pass = os.getenv("AUTH_PASS", "frc2026")
 
-#check if all .env variables are set
+# check if all .env variables are set
 if not team_number or not default_year or not base_url or not api_key:
     raise ValueError("Missing required environment variables")
 
 headers = {
-        "X-TBA-Auth-Key": api_key
+    "X-TBA-Auth-Key": api_key
 }
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
+
 
 @auth.verify_password
 def verify_password(username, password):
     if username == auth_user and password == auth_pass:
         return username
     return None
+
 
 # Very small in-memory TTL cache to avoid re-hitting TBA too frequently (e.g. 7-min refresh)
 
@@ -76,6 +77,7 @@ def tba_get_json(url: str, ttl_seconds: int = 420):
     _cache_set(url, data, ttl_seconds=ttl_seconds)
     return data
 
+
 @app.route('/')
 @auth.login_required
 def index():
@@ -86,9 +88,9 @@ def index():
     print(data)
     return render_template('index.html', items=data.get('events', []), team_number=team_number)
 
+
 @app.route('/get_team_events', methods=['POST'])
 def get_team_events():
-
     # Get team events for the year
     team_events_endpoint = f"{base_url}/team/frc{team_number}/events/{default_year}"
     response = requests.get(team_events_endpoint, headers=headers)
@@ -257,6 +259,19 @@ def event_data():
             record = row.get('record')
             break
 
+    # Build rank lookup (used for next-match formatting and per-team table below)
+    ranking_map = {}
+    for row in (rankings.get('rankings') or []):
+        row_tk = row.get('team_key')
+        row_rk = row.get('rank')
+        if row_tk and row_rk is not None:
+            ranking_map[row_tk] = row_rk
+
+    def _format_team_with_rank(tk: str) -> str:
+        num = tk.replace('frc', '')
+        rk = ranking_map.get(tk)
+        return f"{num} (#{rk})" if rk else num
+
     # Next scheduled match for this team
     next_match = None
     upcoming = []
@@ -292,8 +307,8 @@ def event_data():
         upcoming.sort(key=lambda x: x[0])
         _, nm, red_keys, blue_keys = upcoming[0]
         is_red = team_key in red_keys
-        teammates = [t.replace('frc', '') for t in (red_keys if is_red else blue_keys) if t != team_key]
-        opponents = [t.replace('frc', '') for t in (blue_keys if is_red else red_keys)]
+        teammates = [_format_team_with_rank(t) for t in (red_keys if is_red else blue_keys) if t != team_key]
+        opponents = [_format_team_with_rank(t) for t in (blue_keys if is_red else red_keys)]
         next_match = {
             'match_number': nm.get('match_number'),
             'scheduled_time': nm.get('time'),
@@ -330,13 +345,6 @@ def event_data():
     # Per-team scoring summary (qual matches only; completed only)
     # -----------------
     all_teams = [t.get('key') for t in teams if t.get('key')]
-
-    ranking_map = {}
-    for row in (rankings.get('rankings') or []):
-        tk = row.get('team_key')
-        rk = row.get('rank')
-        if tk and rk is not None:
-            ranking_map[tk] = rk
 
     # Exclude teams with rank 0 (not ranked / not in rankings response)
     ranked_teams = [tk for tk in all_teams if ranking_map.get(tk, 0) != 0]
