@@ -1,0 +1,11 @@
+# Always use LF for line endings
+* text=auto eol=lf
+
+# Keep binary files untouched
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary

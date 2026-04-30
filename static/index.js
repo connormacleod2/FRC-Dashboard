@@ -110,7 +110,7 @@ function renderTeamStats(payload) {
     const bumperColor = nm ? (nm.bumper_color ?? null) : null;
     document.getElementById('bumperColor').textContent = bumperColor ?? '-';
     document.querySelectorAll('.bumper-text').forEach(el => {
-        el.style.color = bumperColor;
+        el.style.color = bumperColor === 'red' ? '#ff4d4d' : bumperColor === 'blue' ? '#7adaff' : null;
     });
     document.getElementById('teammates').textContent = nm ? ((nm.teammates || []).join(', ') || '-') : '-';
     document.getElementById('opponents').textContent = nm ? ((nm.opponents || []).join(', ') || '-') : '-';
